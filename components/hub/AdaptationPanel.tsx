@@ -93,7 +93,7 @@ export function AdaptationPanel({
           ) : (
             <div className="space-y-3">
               {adaptations.map((a) => (
-                <ChannelPreview key={a.id} adaptation={a} />
+                <ChannelPreview key={a.id} adaptation={a} workspace={workspaceId} />
               ))}
             </div>
           )}

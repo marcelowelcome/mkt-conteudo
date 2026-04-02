@@ -1,16 +1,20 @@
-// Preview formatado de adaptação por canal
+// Preview formatado de adaptação por canal — resiliente a nomes variados do Claude
 
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { CHANNEL_LABELS, ADAPTATION_STATUS_COLORS } from '@/lib/constants'
 import { escapeHtml } from '@/lib/auth'
+import { ExternalLink } from 'lucide-react'
 import type { ContentAdaptation, Channel } from '@/types'
 
 interface ChannelPreviewProps {
   adaptation: ContentAdaptation
+  workspace?: string
 }
 
-export function ChannelPreview({ adaptation }: ChannelPreviewProps) {
+export function ChannelPreview({ adaptation, workspace }: ChannelPreviewProps) {
   const label = CHANNEL_LABELS[adaptation.channel as Channel] ?? adaptation.channel
   const statusColor = ADAPTATION_STATUS_COLORS[adaptation.status] ?? ''
   const output = adaptation.ai_output as Record<string, unknown> | null
@@ -19,20 +23,23 @@ export function ChannelPreview({ adaptation }: ChannelPreviewProps) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm">{label}</CardTitle>
-        <Badge className={`text-[10px] ${statusColor}`} variant="secondary">
-          {adaptation.status}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge className={`text-[10px] ${statusColor}`} variant="secondary">
+            {adaptation.status}
+          </Badge>
+          {workspace && (
+            <Link href={`/dashboard/${workspace}/content/${adaptation.content_piece_id}/preview`}>
+              <Button variant="ghost" size="sm" className="h-6 px-2">
+                <ExternalLink className="h-3 w-3" />
+              </Button>
+            </Link>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-2">
         {output ? (
           <div className="space-y-2 text-sm">
-            {renderChannelOutput(adaptation.channel as Channel, output)}
-            {typeof output.strategic_note === 'string' && (
-              <div className="mt-2 rounded bg-muted p-2 text-xs text-muted-foreground">
-                <strong>Nota estratégica:</strong>{' '}
-                {escapeHtml(output.strategic_note)}
-              </div>
-            )}
+            {renderOutput(output)}
           </div>
         ) : (
           <p className="text-xs text-muted-foreground">Sem dados de adaptação.</p>
@@ -42,54 +49,58 @@ export function ChannelPreview({ adaptation }: ChannelPreviewProps) {
   )
 }
 
-function renderChannelOutput(channel: Channel, output: Record<string, unknown>) {
-  switch (channel) {
-    case 'wordpress':
-      return (
-        <div className="space-y-1">
-          <p><strong>Título:</strong> {escapeHtml(String(output.title ?? ''))}</p>
-          <p><strong>Meta:</strong> {escapeHtml(String(output.meta_description ?? ''))}</p>
-          <p><strong>Keyword:</strong> {escapeHtml(String(output.focus_keyword ?? ''))}</p>
-          <p className="text-xs text-muted-foreground">
-            Tags: {Array.isArray(output.tags) ? output.tags.join(', ') : '—'}
+/** Renderiza campos do output de forma genérica — resiliente a nomes variados */
+function renderOutput(output: Record<string, unknown>) {
+  // Separar nota estratégica do resto
+  const strategicNote = findField(output, ['strategic_note', 'nota_estrategica'])
+  const entries = Object.entries(output).filter(([k]) =>
+    !k.includes('strategic_note') && !k.includes('nota_estrategica')
+  )
+
+  // Mostrar os 4 primeiros campos relevantes
+  const mainFields = entries
+    .filter(([, v]) => typeof v === 'string' || Array.isArray(v))
+    .slice(0, 4)
+
+  return (
+    <>
+      {mainFields.map(([key, value]) => (
+        <div key={key}>
+          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+            {formatKey(key)}
+          </p>
+          <p className="text-xs whitespace-pre-wrap line-clamp-3">
+            {renderValue(value)}
           </p>
         </div>
-      )
-    case 'email':
-      return (
-        <div className="space-y-1">
-          <p><strong>Assunto A:</strong> {escapeHtml(String(output.subject_a ?? ''))}</p>
-          <p><strong>Assunto B:</strong> {escapeHtml(String(output.subject_b ?? ''))}</p>
-          <p><strong>Preheader:</strong> {escapeHtml(String(output.preheader ?? ''))}</p>
-          <p><strong>CTA:</strong> {escapeHtml(String(output.cta_text ?? ''))}</p>
+      ))}
+      {entries.length > 4 && (
+        <p className="text-[10px] text-muted-foreground">
+          +{entries.length - 4} campo(s)
+        </p>
+      )}
+      {typeof strategicNote === 'string' && (
+        <div className="mt-2 rounded bg-muted p-2 text-xs text-muted-foreground">
+          <strong>Nota estratégica:</strong> {escapeHtml(strategicNote)}
         </div>
-      )
-    case 'instagram':
-      return (
-        <div className="space-y-1">
-          <p className="whitespace-pre-wrap text-xs">{escapeHtml(String(output.caption ?? ''))}</p>
-          <p className="text-xs text-muted-foreground">
-            Hashtags: {Array.isArray(output.hashtags) ? output.hashtags.slice(0, 10).join(' ') : '—'}
-          </p>
-        </div>
-      )
-    case 'linkedin':
-      return (
-        <div className="space-y-1">
-          <p><strong>Insight:</strong> {escapeHtml(String(output.opening_insight ?? ''))}</p>
-          <p className="whitespace-pre-wrap text-xs">
-            {escapeHtml(String(output.post_text ?? '')).slice(0, 300)}...
-          </p>
-        </div>
-      )
-    case 'youtube':
-      return (
-        <div className="space-y-1">
-          <p><strong>Hook:</strong> {escapeHtml(String(output.script_hook ?? ''))}</p>
-          <p><strong>CTA:</strong> {escapeHtml(String(output.script_cta ?? ''))}</p>
-        </div>
-      )
-    default:
-      return <pre className="text-xs">{JSON.stringify(output, null, 2)}</pre>
+      )}
+    </>
+  )
+}
+
+function findField(obj: Record<string, unknown>, keys: string[]): unknown {
+  for (const k of keys) {
+    if (k in obj) return obj[k]
   }
+  return undefined
+}
+
+function formatKey(key: string): string {
+  return key.replace(/_/g, ' ')
+}
+
+function renderValue(value: unknown): string {
+  if (typeof value === 'string') return escapeHtml(value).slice(0, 300)
+  if (Array.isArray(value)) return value.map((v) => escapeHtml(String(v))).join(', ')
+  return String(value)
 }
