@@ -4,7 +4,6 @@ import { NextRequest } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { apiSuccess, apiError, withErrorHandler } from '@/lib/api-response'
 import { validateCronSecret } from '@/lib/auth'
-import { logger } from '@/lib/logger'
 import type { ConsolidatedAnalytics } from '@/types'
 
 export const GET = withErrorHandler(async (request: NextRequest) => {
@@ -86,13 +85,20 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 })
 
 export const POST = withErrorHandler(async (request: NextRequest) => {
-  // Endpoint para relatório mensal via cron
   if (!validateCronSecret(request)) {
     return apiError('CRON_SECRET inválido', 401)
   }
 
-  logger.info('Monthly report requested')
+  const { generateMonthlyReport } = await import('@/lib/monthly-report')
 
-  // TODO: Integrar com Resend para envio de email
-  return apiSuccess({ message: 'Relatório mensal será implementado com Resend' })
+  const supabase = createServerSupabaseClient()
+  const { data: workspaces } = await supabase.from('workspaces').select('id')
+
+  const results = []
+  for (const ws of workspaces ?? []) {
+    const sent = await generateMonthlyReport(ws.id)
+    results.push({ workspace: ws.id, sent })
+  }
+
+  return apiSuccess({ results })
 })
