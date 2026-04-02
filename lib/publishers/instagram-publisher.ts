@@ -13,13 +13,21 @@ interface InstagramPublishInput {
 
 const GRAPH_API = 'https://graph.facebook.com/v21.0'
 
+interface InstagramConfig {
+  access_token: string
+  ig_user_id: string
+}
+
 /** Publica no Instagram via Meta Graph API */
-export async function publishToInstagram(input: InstagramPublishInput): Promise<PublishResult> {
-  const accessToken = process.env.META_ACCESS_TOKEN
-  const igUserId = process.env.META_IG_USER_ID
+export async function publishToInstagram(
+  input: InstagramPublishInput,
+  config?: InstagramConfig
+): Promise<PublishResult> {
+  const accessToken = config?.access_token || process.env.META_ACCESS_TOKEN
+  const igUserId = config?.ig_user_id || process.env.META_IG_USER_ID
 
   if (!accessToken || !igUserId) {
-    return { success: false, error: 'Instagram não configurado (META_ACCESS_TOKEN ou META_IG_USER_ID ausente)' }
+    return { success: false, error: 'Instagram não configurado' }
   }
 
   const mediaType = input.media_type ?? 'IMAGE'

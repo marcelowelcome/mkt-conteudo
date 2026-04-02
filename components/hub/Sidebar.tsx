@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase-browser'
 import { useRouter } from 'next/navigation'
+import { WorkspaceSwitcher } from '@/components/hub/WorkspaceSwitcher'
 
 interface SidebarProps {
   workspace: string
@@ -46,13 +47,11 @@ export function Sidebar({ workspace }: SidebarProps) {
 
   return (
     <aside className="hidden md:flex md:w-60 md:flex-col md:border-r md:bg-card">
-      <div className="flex h-14 items-center border-b px-4">
+      <div className="border-b px-3 py-3 space-y-2">
         <Link href={basePath} className="font-semibold text-sm tracking-tight">
           Content Hub
         </Link>
-        <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary uppercase">
-          {workspace}
-        </span>
+        <WorkspaceSwitcher current={workspace} />
       </div>
 
       <nav className="flex-1 space-y-1 px-2 py-3">

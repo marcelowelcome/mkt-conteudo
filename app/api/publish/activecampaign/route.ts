@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { apiSuccess, apiError, withErrorHandler } from '@/lib/api-response'
 import { publishToActiveCampaign } from '@/lib/publishers/activecampaign-publisher'
+import { getChannelConfig } from '@/lib/channel-config'
 import { logActivity } from '@/lib/activity'
 import type { EmailAdaptation } from '@/types'
 
@@ -33,6 +34,8 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return apiError('Adaptação sem dados de conteúdo', 400)
   }
 
+  const channelConfig = await getChannelConfig(workspace_id, 'email')
+
   const result = await publishToActiveCampaign({
     subject: adaptation.subject_edited ?? output.subject_a,
     preheader: output.preheader,
@@ -40,6 +43,9 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     cta_text: adaptation.cta_edited ?? output.cta_text,
     cta_url: output.cta_url,
     list_segment: output.list_segment,
+  }, {
+    api_key: channelConfig.api_key,
+    api_url: channelConfig.api_url,
   })
 
   await supabase

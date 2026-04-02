@@ -12,13 +12,21 @@ interface LinkedInPublishInput {
 
 const LINKEDIN_API = 'https://api.linkedin.com/v2'
 
+interface LinkedInConfig {
+  access_token: string
+  organization_id: string
+}
+
 /** Publica post no LinkedIn via API v2 */
-export async function publishToLinkedIn(input: LinkedInPublishInput): Promise<PublishResult> {
-  const accessToken = process.env.LINKEDIN_ACCESS_TOKEN
-  const orgId = process.env.LINKEDIN_ORGANIZATION_ID
+export async function publishToLinkedIn(
+  input: LinkedInPublishInput,
+  config?: LinkedInConfig
+): Promise<PublishResult> {
+  const accessToken = config?.access_token || process.env.LINKEDIN_ACCESS_TOKEN
+  const orgId = config?.organization_id || process.env.LINKEDIN_ORGANIZATION_ID
 
   if (!accessToken || !orgId) {
-    return { success: false, error: 'LinkedIn não configurado (LINKEDIN_ACCESS_TOKEN ou LINKEDIN_ORGANIZATION_ID ausente)' }
+    return { success: false, error: 'LinkedIn não configurado' }
   }
 
   try {

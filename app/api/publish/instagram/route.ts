@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { apiSuccess, apiError, withErrorHandler } from '@/lib/api-response'
 import { publishToInstagram } from '@/lib/publishers/instagram-publisher'
+import { getChannelConfig } from '@/lib/channel-config'
 import { logActivity } from '@/lib/activity'
 import type { InstagramAdaptation } from '@/types'
 
@@ -39,12 +40,17 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const hashtagStr = hashtags.map((h: string) => `#${h.replace('#', '')}`).join(' ')
   const fullCaption = hashtagStr ? `${caption}\n\n${hashtagStr}` : caption
 
+  const channelConfig = await getChannelConfig(workspace_id, 'instagram')
+
   const result = await publishToInstagram({
     caption: fullCaption,
     image_url,
     carousel_urls,
     video_url,
     media_type: media_type ?? 'IMAGE',
+  }, {
+    access_token: channelConfig.access_token,
+    ig_user_id: channelConfig.ig_user_id,
   })
 
   await supabase

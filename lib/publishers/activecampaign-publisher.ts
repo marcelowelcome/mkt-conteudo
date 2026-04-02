@@ -12,15 +12,21 @@ interface ActiveCampaignPublishInput {
   list_segment?: string
 }
 
+interface ActiveCampaignConfig {
+  api_key: string
+  api_url: string
+}
+
 /** Cria uma campanha no ActiveCampaign */
 export async function publishToActiveCampaign(
-  input: ActiveCampaignPublishInput
+  input: ActiveCampaignPublishInput,
+  config?: ActiveCampaignConfig
 ): Promise<PublishResult> {
-  const apiKey = process.env.AC_API_KEY
-  const apiUrl = process.env.AC_API_URL
+  const apiKey = config?.api_key || process.env.AC_API_KEY
+  const apiUrl = config?.api_url || process.env.AC_API_URL
 
   if (!apiKey || !apiUrl) {
-    return { success: false, error: 'ActiveCampaign não configurado (AC_API_KEY ou AC_API_URL ausente)' }
+    return { success: false, error: 'ActiveCampaign não configurado' }
   }
 
   const baseUrl = `${apiUrl}/api/3`

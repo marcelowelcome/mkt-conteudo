@@ -13,14 +13,23 @@ interface WordPressPublishInput {
   date?: string
 }
 
+interface WordPressConfig {
+  site_url: string
+  username: string
+  password: string
+}
+
 /** Publica ou agenda um post no WordPress via REST API */
-export async function publishToWordPress(input: WordPressPublishInput): Promise<PublishResult> {
-  const siteUrl = process.env.WP_SITE_URL
-  const username = process.env.WP_APP_USERNAME
-  const password = process.env.WP_APP_PASSWORD
+export async function publishToWordPress(
+  input: WordPressPublishInput,
+  config?: WordPressConfig
+): Promise<PublishResult> {
+  const siteUrl = config?.site_url || process.env.WP_SITE_URL
+  const username = config?.username || process.env.WP_APP_USERNAME
+  const password = config?.password || process.env.WP_APP_PASSWORD
 
   if (!siteUrl || !username || !password) {
-    return { success: false, error: 'WordPress não configurado (WP_SITE_URL, WP_APP_USERNAME ou WP_APP_PASSWORD ausente)' }
+    return { success: false, error: 'WordPress não configurado' }
   }
 
   try {

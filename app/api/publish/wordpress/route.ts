@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { apiSuccess, apiError, withErrorHandler } from '@/lib/api-response'
 import { publishToWordPress } from '@/lib/publishers/wordpress-publisher'
+import { getChannelConfig } from '@/lib/channel-config'
 import { logActivity } from '@/lib/activity'
 import type { WordPressAdaptation } from '@/types'
 
@@ -33,6 +34,8 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return apiError('Adaptação sem dados de conteúdo', 400)
   }
 
+  const channelConfig = await getChannelConfig(workspace_id, 'wordpress')
+
   const result = await publishToWordPress({
     title: adaptation.title_edited ?? output.title,
     body_html: adaptation.body_edited ?? output.body_html,
@@ -40,6 +43,10 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     focus_keyword: output.focus_keyword,
     tags: output.tags,
     status: status ?? 'draft',
+  }, {
+    site_url: channelConfig.site_url,
+    username: channelConfig.username,
+    password: channelConfig.password,
   })
 
   // Atualizar adaptação com resultado

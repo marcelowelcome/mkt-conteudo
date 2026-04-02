@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { apiSuccess, apiError, withErrorHandler } from '@/lib/api-response'
 import { publishToYouTube } from '@/lib/publishers/youtube-publisher'
+import { getChannelConfig } from '@/lib/channel-config'
 import { logActivity } from '@/lib/activity'
 import type { YouTubeAdaptation } from '@/types'
 
@@ -33,11 +34,17 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return apiError('Adaptação sem dados de conteúdo', 400)
   }
 
+  const channelConfig = await getChannelConfig(workspace_id, 'youtube')
+
   const result = await publishToYouTube({
     video_id,
     title: adaptation.title_edited ?? undefined,
     description: adaptation.body_edited ?? output.description,
     tags: output.tags,
+  }, {
+    client_id: channelConfig.client_id,
+    client_secret: channelConfig.client_secret,
+    refresh_token: channelConfig.refresh_token,
   })
 
   await supabase

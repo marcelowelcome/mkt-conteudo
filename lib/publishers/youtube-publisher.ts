@@ -13,12 +13,21 @@ interface YouTubePublishInput {
 
 const YOUTUBE_API = 'https://www.googleapis.com/youtube/v3'
 
+interface YouTubeConfig {
+  client_id: string
+  client_secret: string
+  refresh_token: string
+}
+
 /** Atualiza metadados de um vídeo no YouTube */
-export async function publishToYouTube(input: YouTubePublishInput): Promise<PublishResult> {
-  const accessToken = await getAccessToken()
+export async function publishToYouTube(
+  input: YouTubePublishInput,
+  config?: YouTubeConfig
+): Promise<PublishResult> {
+  const accessToken = await getAccessToken(config)
 
   if (!accessToken) {
-    return { success: false, error: 'YouTube não configurado (credenciais Google ausentes)' }
+    return { success: false, error: 'YouTube não configurado' }
   }
 
   try {
@@ -83,10 +92,10 @@ export async function publishToYouTube(input: YouTubePublishInput): Promise<Publ
 }
 
 /** Obtém access token via refresh token do Google OAuth */
-async function getAccessToken(): Promise<string | null> {
-  const clientId = process.env.GOOGLE_CLIENT_ID
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET
-  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN
+async function getAccessToken(config?: YouTubeConfig): Promise<string | null> {
+  const clientId = config?.client_id || process.env.GOOGLE_CLIENT_ID
+  const clientSecret = config?.client_secret || process.env.GOOGLE_CLIENT_SECRET
+  const refreshToken = config?.refresh_token || process.env.GOOGLE_REFRESH_TOKEN
 
   if (!clientId || !clientSecret || !refreshToken) return null
 

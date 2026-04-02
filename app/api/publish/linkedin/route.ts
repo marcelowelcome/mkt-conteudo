@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { apiSuccess, apiError, withErrorHandler } from '@/lib/api-response'
 import { publishToLinkedIn } from '@/lib/publishers/linkedin-publisher'
+import { getChannelConfig } from '@/lib/channel-config'
 import { logActivity } from '@/lib/activity'
 import type { LinkedInAdaptation } from '@/types'
 
@@ -33,10 +34,15 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return apiError('Adaptação sem dados de conteúdo', 400)
   }
 
+  const channelConfig = await getChannelConfig(workspace_id, 'linkedin')
+
   const result = await publishToLinkedIn({
     text: adaptation.body_edited ?? output.post_text,
     article_url,
     article_title: adaptation.title_edited ?? undefined,
+  }, {
+    access_token: channelConfig.access_token,
+    organization_id: channelConfig.organization_id,
   })
 
   await supabase
